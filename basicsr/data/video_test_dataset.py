@@ -45,10 +45,10 @@ class VideoTestDataset(data.Dataset):
         super(VideoTestDataset, self).__init__()
         self.opt = opt
         self.cache_data = opt['cache_data']
-        self.gt_root, self.lq_root = opt['dataroot_gt'], opt['dataroot_lq']
+        self.gt_root = None
+        self.lq_root = opt['dataroot_lq']
         self.data_info = {
             'lq_path': [],
-            'gt_path': [],
             'folder': [],
             'idx': [],
             'border': []
@@ -62,59 +62,30 @@ class VideoTestDataset(data.Dataset):
         logger = get_root_logger()
         logger.info(f'Generate data info for VideoTestDataset - {opt["name"]}')
         self.imgs_lq, self.imgs_gt = {}, {}
-        if 'meta_info_file' in opt:
-            with open(opt['meta_info_file'], 'r') as fin:
-                subfolders = [line.split(' ')[0] for line in fin]
-                subfolders_lq = [
-                    osp.join(self.lq_root, key) for key in subfolders
-                ]
-                subfolders_gt = [
-                    osp.join(self.gt_root, key) for key in subfolders
-                ]
-        else:
-            subfolders_lq = sorted(glob.glob(osp.join(self.lq_root, '*')))
-            subfolders_gt = sorted(glob.glob(osp.join(self.gt_root, '*')))
 
-        if opt['name'].lower() in ['vid4', 'reds4', 'redsofficial']:
-            for subfolder_lq, subfolder_gt in zip(subfolders_lq,
-                                                  subfolders_gt):
-                # get frame list for lq and gt
-                subfolder_name = osp.basename(subfolder_lq)
-                img_paths_lq = sorted(
-                    list(scandir(subfolder_lq, full_path=True)))
-                img_paths_gt = sorted(
-                    list(scandir(subfolder_gt, full_path=True)))
+        subfolders_lq = sorted(glob.glob(osp.join(self.lq_root, '*')))
+        # subfolders_gt = sorted(glob.glob(osp.join(self.gt_root, '*')))
+        
+        subfolder_lq = subfolders_lq[0]
+        # get frame list for lq
+        subfolder_name = osp.basename(subfolder_lq)
+        img_paths_lq = sorted(
+            list(scandir(subfolder_lq, full_path=True)))
 
-                max_idx = len(img_paths_lq)
-                assert max_idx == len(img_paths_gt), (
-                    f'Different number of images in lq ({max_idx})'
-                    f' and gt folders ({len(img_paths_gt)})')
+        max_idx = len(img_paths_lq)
 
-                self.data_info['lq_path'].extend(img_paths_lq)
-                self.data_info['gt_path'].extend(img_paths_gt)
-                self.data_info['folder'].extend([subfolder_name] * max_idx)
-                for i in range(max_idx):
-                    self.data_info['idx'].append(f'{i}/{max_idx}')
-                border_l = [0] * max_idx
-                for i in range(self.opt['num_frame'] // 2):
-                    border_l[i] = 1
-                    border_l[max_idx - i - 1] = 1
-                self.data_info['border'].extend(border_l)
+        self.data_info['lq_path'].extend(img_paths_lq)
+        self.data_info['folder'].extend([subfolder_name] * max_idx)
+        for i in range(max_idx):
+            self.data_info['idx'].append(f'{i}/{max_idx}')
+        border_l = [0] * max_idx
+        for i in range(self.opt['num_frame'] // 2):
+            border_l[i] = 1
+            border_l[max_idx - i - 1] = 1
+        self.data_info['border'].extend(border_l)
 
-                # cache data or save the frame list
-                if self.cache_data:
-                    logger.info(
-                        f'Cache {subfolder_name} for VideoTestDataset...')
-                    self.imgs_lq[subfolder_name] = util.read_img_seq(
-                        img_paths_lq)
-                    self.imgs_gt[subfolder_name] = util.read_img_seq(
-                        img_paths_gt)
-                else:
-                    self.imgs_lq[subfolder_name] = img_paths_lq
-                    self.imgs_gt[subfolder_name] = img_paths_gt
-        else:
-            raise ValueError(
-                f'Non-supported video test dataset: {type(opt["name"])}')
+        # cache data or save the frame list
+        self.imgs_lq[subfolder_name] = img_paths_lq
 
     def __getitem__(self, index):
         folder = self.data_info['folder'][index]
@@ -133,12 +104,12 @@ class VideoTestDataset(data.Dataset):
         else:
             img_paths_lq = [self.imgs_lq[folder][i] for i in select_idx]
             imgs_lq = util.read_img_seq(img_paths_lq)
-            img_gt = util.read_img_seq([self.imgs_gt[folder][idx]])
-            img_gt.squeeze_(0)
+            # img_gt = util.read_img_seq([self.imgs_gt[folder][idx]])
+            # img_gt.squeeze_(0)
 
         return {
             'lq': imgs_lq,  # (t, c, h, w)
-            'gt': img_gt,  # (c, h, w)
+            #'gt': None,  # (c, h, w)
             'folder': folder,  # folder name
             'idx': self.data_info['idx'][index],  # e.g., 0/99
             'border': border,  # 1 for border, 0 for non-border
@@ -146,7 +117,7 @@ class VideoTestDataset(data.Dataset):
         }
 
     def __len__(self):
-        return len(self.data_info['gt_path'])
+        return len(self.data_info['lq_path'])
 
 
 class VideoTestVimeo90KDataset(data.Dataset):

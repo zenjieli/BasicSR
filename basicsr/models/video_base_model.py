@@ -36,15 +36,15 @@ class VideoBaseModel(SRModel):
                     device='cuda')
 
         rank, world_size = get_dist_info()
-        for _, tensor in self.metric_results.items():
-            tensor.zero_()
+        # for _, tensor in self.metric_results.items():
+        #     tensor.zero_()
         # record all frames (border and center frames)
         if rank == 0:
             pbar = tqdm(total=len(dataset), unit='frame')
         for idx in range(rank, len(dataset), world_size):
             val_data = dataset[idx]
             val_data['lq'].unsqueeze_(0)
-            val_data['gt'].unsqueeze_(0)
+            # val_data['gt'].unsqueeze_(0)
             folder = val_data['folder']
             frame_idx, max_idx = val_data['idx'].split('/')
             lq_path = val_data['lq_path']

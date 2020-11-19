@@ -6,11 +6,11 @@ manual_seed: 0
 
 datasets:
   test:
-    name: REDS4
+    name: REDS
     type: VideoTestDataset
-    dataroot_gt: datasets/REDS/train_sharp
-    dataroot_lq: datasets/REDS/train_blur_comp
-    meta_info_file: basicsr/data/meta_info/meta_info_REDS4_test_GT.txt
+    #dataroot_gt: datasets/REDS/val_sharp
+    dataroot_lq: datasets/Audi/clip2
+    #meta_info_file: basicsr/data/meta_info/meta_info_REDS4_test_GT.txt
     io_backend:
       type: disk
 
@@ -43,8 +43,8 @@ val:
   save_img: true
   suffix: ~  # add suffix to saved images, if None, use exp name
 
-  metrics:
-    psnr: # metric name, can be arbitrary
-      type: calculate_psnr
-      crop_border: 0
-      test_y_channel: false
+  metrics: ~
+    #psnr: # metric name, can be arbitrary
+    #  type: calculate_psnr
+    #  crop_border: 0
+    #  test_y_channel: false
